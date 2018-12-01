@@ -9,5 +9,5 @@ fn main() {
 
     let mut contents = String::new();
     input.read_to_string(&mut contents).expect("Couldn't read file.");
-    println!("{}", day1::final_frequency(&contents));
+    println!("{}", day1::first_duplicate_frequency(&contents));
 }
