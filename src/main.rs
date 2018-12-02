@@ -9,5 +9,5 @@ fn main() {
 
     let mut contents = String::new();
     input.read_to_string(&mut contents).expect("Couldn't read file.");
-    println!("{}", day2::checksum(&contents));
+    println!("{}", day2::prototype_ids_common_letters(&contents));
 }
