@@ -12,5 +12,5 @@ fn main() {
 
     let mut contents = String::new();
     input.read_to_string(&mut contents).expect("Couldn't read file.");
-    println!("{}", day3::count_conflicting_squares(&contents));
+    println!("{}", day3::find_unconflicting_id(&contents));
 }

@@ -1,4 +1,3 @@
-
 use regex::Regex;
 use std::collections::HashMap;
 
@@ -7,7 +6,9 @@ struct Fabric {
     squares: HashMap<(usize, usize), usize>,
 }
 
+/// The data for a rectangular claim an elf makes on a section of fabric
 struct Claim {
+    id: usize,
     left: usize,
     top: usize,
     width: usize,
@@ -37,8 +38,23 @@ impl Fabric {
         self.squares.values().filter(|count| **count >= 2).count()
     }
 
+    /// Counts the total squares claimed
+    /// 
+    /// A helper function I wrote to help with debugging... #didnthelp
     fn total_squares(&self) -> usize {
         self.squares.iter().count()
+    }
+
+    /// Checks whether or not a given claim has any overlapping cells
+    fn check_overlap(&self, claim: &Claim) -> bool {
+        for x in claim.left..(claim.left + claim.width) {
+            for y in claim.top..(claim.top + claim.height) {
+                if self.squares.get(&(x, y)) != Some(&1) {
+                    return true;
+                }
+            }
+        }
+        false
     }
 }
 
@@ -55,6 +71,7 @@ fn process_claim(claim_text: &str) -> Claim {
     }
     let claim_parts = claim_re.captures(claim_text).unwrap();
     Claim {
+        id: claim_parts["id"].parse().unwrap(),
         left: claim_parts["left"].parse().unwrap(),
         top: claim_parts["top"].parse().unwrap(),
         width: claim_parts["width"].parse().unwrap(),
@@ -62,6 +79,7 @@ fn process_claim(claim_text: &str) -> Claim {
     }
 }
 
+/// Counts the number of squares with more than one claim on them
 pub fn count_conflicting_squares(text: &str) -> usize {
     let mut fabric = Fabric::new();
 
@@ -71,6 +89,28 @@ pub fn count_conflicting_squares(text: &str) -> usize {
     }
 
     fabric.count_conflicts()
+}
+
+/// Finds out if a claim in a group of claims doesn't overlap.  Returns
+/// the first one that doesn't.
+pub fn find_unconflicting_id(text: &str) -> usize {
+    let mut fabric = Fabric::new();
+    let mut claims: Vec<Claim> = Vec::new();
+
+    // Load all the claims in
+    for line in text.lines() {
+        let claim = process_claim(line);
+        fabric.claim(&claim);
+        claims.push(claim);
+    }
+
+    // Check them all for overlaps
+    for claim in claims {
+        if !fabric.check_overlap(&claim) {
+            return claim.id;
+        }
+    }
+    return 0;
 }
 
 #[cfg(test)]
@@ -121,8 +161,19 @@ mod tests {
     #[test]
     fn test_fabric_has_right_number_of_squares() {
         let mut fabric = Fabric::new();
-        let claim = Claim { left: 3, top: 3, width: 5, height: 4 };
+        let claim = Claim { id: 1, left: 3, top: 3, width: 5, height: 4 };
         fabric.claim(&claim);
         assert_eq!(20, fabric.total_squares());
+    }
+
+    // Part 2 tests
+
+    #[test]
+    fn test_second_part() {
+        let claim_text = "#1 @ 1,3: 4x4
+#2 @ 3,1: 4x4
+#3 @ 5,5: 2x2";
+
+        assert_eq!(3, find_unconflicting_id(claim_text));
     }
 }
