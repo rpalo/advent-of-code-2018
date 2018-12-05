@@ -4,7 +4,7 @@ extern crate regex;
 use std::fs::File;
 use std::io::prelude::*;
 
-mod day3;
+mod day4;
 
 fn main() {
 
@@ -12,5 +12,5 @@ fn main() {
 
     let mut contents = String::new();
     input.read_to_string(&mut contents).expect("Couldn't read file.");
-    println!("{}", day3::find_unconflicting_id(&contents));
+    println!("{}", day4::part1(&contents));
 }
