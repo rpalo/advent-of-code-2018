@@ -4,24 +4,21 @@ use std::collections::HashSet;
 
 // Part 1: How many units remain after fully reacting a polymer
 
+/// Reduce down a polymer by dropping any mer pairs
+/// 
+/// A mer pair is any lowercase letter and its corresponding uppercase
+/// letter, adjacent to each other
+/// Optionally, provide a "drop_mer" to drop unconditionally, case insenitive
+/// pair or not
 pub fn reduce(polymer: &str, drop_mer: Option<char>) -> String {
-    let mut result: Vec<char> = polymer.chars().collect();
-    let mut current = 0;
-    while current < result.len() - 1 {
-        let this_char = result[current];
-        let next_char = result[current + 1];
-        if matches_drop_mer(this_char, drop_mer) {
-            result.remove(current);
-            if current != 0 { current -= 1; }
-            continue;
+    let mut result: Vec<char> = Vec::new();
+    for c in polymer.chars() {
+        if matches_drop_mer(c, drop_mer) { continue; }
+        if result.last().is_some() && is_polymer_pair(*result.last().unwrap(), c) {
+            result.pop();
+        } else {
+            result.push(c);
         }
-        if is_polymer_pair(this_char, next_char) {
-            result.remove(current);
-            result.remove(current);
-            if current != 0 { current -= 1; }
-            continue;
-        }
-        current += 1;
     }
     result.into_iter().collect()
 }
@@ -42,8 +39,8 @@ fn matches_drop_mer(c: char, drop_mer: Option<char>) -> bool {
 // compacting, remove it, and return the length of the shortest polymer
 // after compaction.
 
-/// Optimizes a polymer by figuring out which *one* pair is causing
-/// the most problems and removing it.  The compacted string is returned
+/// Optimizes a polymer by figuring out which *one* mer is inhibiting
+/// reduction the most and removing it.  The reduced string is returned
 pub fn optimize(polymer: &str) -> String {
     let possible_mers: HashSet<char> = polymer.to_lowercase().chars().collect();
     let mut result_candidates: Vec<String> = Vec::new();
