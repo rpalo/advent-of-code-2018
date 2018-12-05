@@ -17,13 +17,30 @@ impl SecurityTeam {
     }
 
     pub fn load_schedule(&mut self, text: &str) {
+        let mut current_guard = 0;
+        let mut current_state = "";
+        let mut sleep_start = 0;
         for line in text.lines() {
             // Yeah I'm hard-coding the minutes location, DON'T JUDGE ME
-            let minute: usize = line[14..16].parse().expect("Minutes weren't a number");
-            let action = line[19..];
+            let minute: usize = line[15..17].parse().expect("Minutes weren't a number");
+            let action = &line[19..];
             if action.contains("Guard") {
                 // New guard starting shift.
-                // TODO
+                let id = action.trim_matches(|c: char| !c.is_numeric()).parse().expect("No guard ID");
+                self.guards.entry(id).or_insert(Guard::new(id));
+                current_guard = id;
+                current_state = "awake";
+            } else if action.contains("falls asleep") {
+                if current_state == "awake" {
+                    current_state = "asleep";
+                    sleep_start = minute;
+                }
+                // Ignores double-falls asleep
+            } else if action.contains("wakes up") {
+                if current_state == "asleep" {
+                    self.guards.get_mut(&current_guard).unwrap().track_sleep(sleep_start, minute);
+                    current_state = "awake";
+                }
             }
         }
     }
@@ -59,19 +76,51 @@ impl Guard {
     pub fn total_minutes_asleep(&self) -> usize {
         self.sleep_minutes.values().sum()
     }
+
+    pub fn track_sleep(&mut self, asleep: usize, awake: usize) {
+        for minute in asleep..awake {
+            *self.sleep_minutes.entry(minute).or_insert(0) += 1
+        }
+    }
 }
 
 pub fn part1(text: &str) -> usize {
     let mut guards = SecurityTeam::new();
     guards.load_schedule(text);
     let sleepy = guards.sleepiest_guard();
-    sleepy.id * sleepy.sleepiest_minute()
+    sleepy.id() * sleepy.sleepiest_minute()
 }
+
 
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+        #[test]
+    fn test_sleepy_id() {
+        let schedule = "[1518-11-01 00:00] Guard #10 begins shift
+[1518-11-01 00:05] falls asleep
+[1518-11-01 00:25] wakes up
+[1518-11-01 00:30] falls asleep
+[1518-11-01 00:55] wakes up
+[1518-11-01 23:58] Guard #99 begins shift
+[1518-11-02 00:40] falls asleep
+[1518-11-02 00:50] wakes up
+[1518-11-03 00:05] Guard #10 begins shift
+[1518-11-03 00:24] falls asleep
+[1518-11-03 00:29] wakes up
+[1518-11-04 00:02] Guard #99 begins shift
+[1518-11-04 00:36] falls asleep
+[1518-11-04 00:46] wakes up
+[1518-11-05 00:03] Guard #99 begins shift
+[1518-11-05 00:45] falls asleep
+[1518-11-05 00:55] wakes up";
+
+        let mut squad = SecurityTeam::new();
+        squad.load_schedule(schedule);
+        assert_eq!(10, squad.sleepiest_guard().id());
+    }
 
     #[test]
     fn test_part_one() {
