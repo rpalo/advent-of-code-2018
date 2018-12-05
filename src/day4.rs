@@ -114,7 +114,7 @@ impl Guard {
 }
 
 /// Part 1 asks for the ID of the guard who slept the most multiplied by
-/// the amount of minutes they slept
+/// the minute they slept most frequently
 pub fn part1(text: &str) -> usize {
     let mut guards = SecurityTeam::new();
     guards.load_schedule(text);
