@@ -16,10 +16,18 @@ impl SecurityTeam {
         Self { guards: HashMap::new() }
     }
 
+    /// Loads in a log-file-like schedule from text
+    /// 
+    /// Entries have the form '[YYYY-MM-DD HH:MM] message'
+    /// Possible messages are 'Guard #<id> begins shift'
+    ///                       'falls asleep'
+    ///                       'wakes up'
+    /// Assumes that the logs are in chronological order (WHICH IS SANE)
     pub fn load_schedule(&mut self, text: &str) {
         let mut current_guard = 0;
         let mut current_state = "";
         let mut sleep_start = 0;
+
         for line in text.lines() {
             // Yeah I'm hard-coding the minutes location, DON'T JUDGE ME
             let minute: usize = line[15..17].parse().expect("Minutes weren't a number");
@@ -31,12 +39,13 @@ impl SecurityTeam {
                 current_guard = id;
                 current_state = "awake";
             } else if action.contains("falls asleep") {
+                // Ignores double-falls asleep
                 if current_state == "awake" {
                     current_state = "asleep";
                     sleep_start = minute;
                 }
-                // Ignores double-falls asleep
             } else if action.contains("wakes up") {
+                // Ignores double-wakes
                 if current_state == "asleep" {
                     self.guards.get_mut(&current_guard).unwrap().track_sleep(sleep_start, minute);
                     current_state = "awake";
@@ -45,15 +54,17 @@ impl SecurityTeam {
         }
     }
 
+    /// Returns the guard with the overall most minutes asleep
     pub fn sleepiest_guard(&self) -> &Guard {
-        self.guards.iter().
-            max_by_key(|(_id, guard)| guard.total_minutes_asleep()).expect("No guards on team")
-            .1
+        self.guards.values()
+            .max_by_key(|guard| guard.total_minutes_asleep())
+            .expect("No guards on team")
     }
 
+    /// Returns the guard that fell asleep the most on the same minute
     pub fn most_consistent_sleeper(&self) -> &Guard {
-        self.guards.values().
-            max_by_key(|guard| guard.sleep_on(guard.sleepiest_minute()))
+        self.guards.values()
+            .max_by_key(|guard| guard.sleep_on(guard.sleepiest_minute()))
             .expect("No guards on team")
     }
 }
@@ -73,27 +84,37 @@ impl Guard {
         self.id
     }
 
+    /// Returns the minute in which this guard most commonly slept
+    /// 
+    /// Accounts for the possibility that this guard doesn't suck at their
+    /// job and stays awake the whole time.
     pub fn sleepiest_minute(&self) -> usize {
         *self.sleep_minutes.iter()
-            .max_by_key(|(_id, minutes)| **minutes).unwrap_or((&0, &0))
+            .max_by_key(|(_id, minutes)| **minutes)
+            .unwrap_or((&0, &0))
             .0
     }
 
+    /// Sums up this guards total sleeping time
     pub fn total_minutes_asleep(&self) -> usize {
         self.sleep_minutes.values().sum()
     }
 
+    /// Logs in a length of time where the guard was asleep
     pub fn track_sleep(&mut self, asleep: usize, awake: usize) {
         for minute in asleep..awake {
             *self.sleep_minutes.entry(minute).or_insert(0) += 1
         }
     }
 
+    /// Returns the amount of times this guard slept on a given minute
     pub fn sleep_on(&self, minute: usize) -> usize {
         *self.sleep_minutes.get(&minute).unwrap_or(&0)
     }
 }
 
+/// Part 1 asks for the ID of the guard who slept the most multiplied by
+/// the amount of minutes they slept
 pub fn part1(text: &str) -> usize {
     let mut guards = SecurityTeam::new();
     guards.load_schedule(text);
@@ -103,6 +124,8 @@ pub fn part1(text: &str) -> usize {
 
 // Part 2
 
+/// Part two asks for the ID of the guard who slept the most on a single
+/// minute multiplied by that minute
 pub fn part2(text: &str) -> usize {
     let mut guards = SecurityTeam::new();
     guards.load_schedule(text);
