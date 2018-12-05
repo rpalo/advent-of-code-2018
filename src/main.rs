@@ -12,5 +12,5 @@ fn main() {
 
     let mut contents = String::new();
     input.read_to_string(&mut contents).expect("Couldn't read file.");
-    println!("{}", day4::part1(&contents));
+    println!("{}", day4::part2(&contents));
 }

@@ -50,6 +50,12 @@ impl SecurityTeam {
             max_by_key(|(_id, guard)| guard.total_minutes_asleep()).expect("No guards on team")
             .1
     }
+
+    pub fn most_consistent_sleeper(&self) -> &Guard {
+        self.guards.values().
+            max_by_key(|guard| guard.sleep_on(guard.sleepiest_minute()))
+            .expect("No guards on team")
+    }
 }
 
 /// A security guard.  He keeps track of his own sleep times (what a great person)!
@@ -69,7 +75,7 @@ impl Guard {
 
     pub fn sleepiest_minute(&self) -> usize {
         *self.sleep_minutes.iter()
-            .max_by_key(|(_id, minutes)| **minutes).expect("Guard didn't sleep")
+            .max_by_key(|(_id, minutes)| **minutes).unwrap_or((&0, &0))
             .0
     }
 
@@ -82,6 +88,10 @@ impl Guard {
             *self.sleep_minutes.entry(minute).or_insert(0) += 1
         }
     }
+
+    pub fn sleep_on(&self, minute: usize) -> usize {
+        *self.sleep_minutes.get(&minute).unwrap_or(&0)
+    }
 }
 
 pub fn part1(text: &str) -> usize {
@@ -91,6 +101,14 @@ pub fn part1(text: &str) -> usize {
     sleepy.id() * sleepy.sleepiest_minute()
 }
 
+// Part 2
+
+pub fn part2(text: &str) -> usize {
+    let mut guards = SecurityTeam::new();
+    guards.load_schedule(text);
+    let consistent_guard = guards.most_consistent_sleeper();
+    consistent_guard.id() * consistent_guard.sleepiest_minute()
+}
 
 
 #[cfg(test)]
@@ -143,5 +161,53 @@ mod tests {
 [1518-11-05 00:55] wakes up";
 
         assert_eq!(240, part1(schedule));
+    }
+
+        #[test]
+    fn test_part_two() {
+        let schedule = "[1518-11-01 00:00] Guard #10 begins shift
+[1518-11-01 00:05] falls asleep
+[1518-11-01 00:25] wakes up
+[1518-11-01 00:30] falls asleep
+[1518-11-01 00:55] wakes up
+[1518-11-01 23:58] Guard #99 begins shift
+[1518-11-02 00:40] falls asleep
+[1518-11-02 00:50] wakes up
+[1518-11-03 00:05] Guard #10 begins shift
+[1518-11-03 00:24] falls asleep
+[1518-11-03 00:29] wakes up
+[1518-11-04 00:02] Guard #99 begins shift
+[1518-11-04 00:36] falls asleep
+[1518-11-04 00:46] wakes up
+[1518-11-05 00:03] Guard #99 begins shift
+[1518-11-05 00:45] falls asleep
+[1518-11-05 00:55] wakes up";
+
+        assert_eq!(4455, part2(schedule));
+    }
+
+    #[test]
+    fn test_sleepiest_minute() {
+        let schedule = "[1518-11-01 00:00] Guard #10 begins shift
+[1518-11-01 00:05] falls asleep
+[1518-11-01 00:25] wakes up
+[1518-11-01 00:30] falls asleep
+[1518-11-01 00:55] wakes up
+[1518-11-01 23:58] Guard #99 begins shift
+[1518-11-02 00:40] falls asleep
+[1518-11-02 00:50] wakes up
+[1518-11-03 00:05] Guard #10 begins shift
+[1518-11-03 00:24] falls asleep
+[1518-11-03 00:29] wakes up
+[1518-11-04 00:02] Guard #99 begins shift
+[1518-11-04 00:36] falls asleep
+[1518-11-04 00:46] wakes up
+[1518-11-05 00:03] Guard #99 begins shift
+[1518-11-05 00:45] falls asleep
+[1518-11-05 00:55] wakes up";
+
+        let mut squad = SecurityTeam::new();
+        squad.load_schedule(schedule);
+        assert_eq!(45, squad.guards.get(&99).unwrap().sleepiest_minute());
     }
 }
