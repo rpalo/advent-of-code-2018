@@ -24,6 +24,8 @@ impl Grid {
         Self { coords: vec![], points: vec![], width: 0, height: 0 }
     }
 
+    /// Loads a grid from text, building each coordinate and calculating
+    /// most of part 1
     pub fn from_text(text: &str) -> Self {
         let mut grid = Grid::new();
         for line in text.lines() {
@@ -39,12 +41,17 @@ impl Grid {
         grid
     }
 
+    /// Calculates the width and height of the grid
     fn bounds(&self) -> (usize, usize) {
         let max_row = self.coords.iter().map(|coord| coord.y).max().unwrap();
         let max_col = self.coords.iter().map(|coord| coord.x).max().unwrap();
         (max_row, max_col)
     }
 
+    /// For each point on the Grid, calculates the closest Coordinate to
+    /// that point
+    /// 
+    /// Ties count as nothing!
     fn calculate_closest_coords(&mut self) {
         for y in 0..self.height {
             for x in 0..self.width {
@@ -63,6 +70,12 @@ impl Grid {
         }
     }
 
+    /// Checks whether or not a coordinate is internal
+    /// 
+    /// Internal coordinates are completely fenced in by other
+    /// coordinates.  No infinite boundaries (i.e. not touching the edges)
+    /// 
+    /// This could probably be batched in the contructor rather than done in a loop.
     fn is_internal(&self, id: usize) -> bool {
         let mut external: HashSet<usize> = HashSet::new();
         // Left and right side
@@ -84,6 +97,7 @@ impl Grid {
         !external.contains(&id)
     }
 
+    /// Calculates the area of the internal coordinate that claims the most area
     pub fn most_claimed_area(&self) -> usize {
         let mut counter: HashMap<usize, usize> = HashMap::new();
         for point in self.points.iter() {
@@ -97,6 +111,8 @@ impl Grid {
             .max().unwrap()
     }
 
+    /// Counts how many points have a total manhattan distance less than
+    /// a threshold when checked against all Coordinates
     pub fn squares_closer_than(&self, dist: usize) -> usize {
         let mut distances: Vec<usize> = vec![];
         for y in 0..self.height {
@@ -124,6 +140,7 @@ impl Coordinate {
         Self { id: 0, x, y }
     }
 
+    /// Loads data from a line of text, essentially a CSV line
     pub fn from_str(text: &str) -> Self {
         let mut parts = text.split(',');
         let x = parts.next().unwrap().trim().parse().unwrap();
@@ -131,6 +148,7 @@ impl Coordinate {
         Self { id: 0, x, y }
     }
 
+    /// Calculate manhattan distance from here to any X-Y pair
     pub fn manhattan_distance_to(&self, x: usize, y: usize) -> usize {
         let x1 = self.x as i32;
         let x2 = x as i32;
@@ -140,11 +158,13 @@ impl Coordinate {
     }
 }
 
+/// Part 1
 pub fn largest_finite_area(text: &str) -> usize {
     let grid = Grid::from_text(text);
     grid.most_claimed_area()
 }
 
+/// Part 2
 pub fn squares_closer_than(text: &str, dist: usize) -> usize {
     let grid = Grid::from_text(text);
     grid.squares_closer_than(dist)
