@@ -97,13 +97,18 @@ impl Grid {
             .max().unwrap()
     }
 
-    pub fn print(&self) {
+    pub fn squares_closer_than(&self, dist: usize) -> usize {
+        let mut distances: Vec<usize> = vec![];
         for y in 0..self.height {
             for x in 0..self.width {
-                print!("{}", self.points[x + y*self.width].unwrap_or(0));
+                let total = self.coords.iter()
+                    .fold(0, |acc, coord| acc + coord.manhattan_distance_to(x, y));
+                if total < dist {
+                    distances.push(total);
+                }
             }
-            print!("\n");
         }
+        distances.iter().count()
     }
 }
 
@@ -140,6 +145,11 @@ pub fn largest_finite_area(text: &str) -> usize {
     grid.most_claimed_area()
 }
 
+pub fn squares_closer_than(text: &str, dist: usize) -> usize {
+    let grid = Grid::from_text(text);
+    grid.squares_closer_than(dist)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -154,5 +164,17 @@ mod tests {
 8, 9";
 
         assert_eq!(17, largest_finite_area(coords));
+    }
+
+    #[test]
+    fn test_part_two() {
+        let coords = "1, 1
+1, 6
+8, 3
+3, 4
+5, 5
+8, 9";
+
+        assert_eq!(16, squares_closer_than(coords, 32));
     }
 }

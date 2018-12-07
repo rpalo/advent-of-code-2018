@@ -12,5 +12,5 @@ fn main() {
 
     let mut contents = String::new();
     input.read_to_string(&mut contents).expect("Couldn't read file.");
-    println!("{}", day6::largest_finite_area(&contents));
+    println!("{}", day6::squares_closer_than(&contents, 10000));
 }
