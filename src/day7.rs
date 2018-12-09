@@ -50,6 +50,8 @@ impl DependencyGraph {
         results
     }
 
+    /// Calculate how long it would take if each step has a duration and
+    /// you have some elves helping you
     pub fn assisted_assembly_duration(&self, workers: usize, base_delay: usize) -> usize {
         let mut pending: HashSet<char> = self.instructions.keys().cloned().collect();
         let mut active: HashMap<char, usize> = HashMap::new();
@@ -107,6 +109,8 @@ pub fn order_steps(text: &str) -> String {
     let deps = DependencyGraph::from_instructions(text);
     deps.linearize().into_iter().collect()
 }
+
+// Part 2: How long will it take to complete all the steps?
 
 /// Find out how long to run a set of tasks with helpers
 pub fn assisted_duration(text: &str, workers: usize, base_delay: usize) -> usize {
