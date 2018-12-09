@@ -17,7 +17,7 @@ impl DependencyGraph {
 
     pub fn add_dependency(&mut self, parent: char, child: char) {
         self.instructions.entry(parent).or_insert(vec![]);
-        let mut child_deps = self.instructions.entry(child).or_insert(vec![]);
+        let child_deps = self.instructions.entry(child).or_insert(vec![]);
         child_deps.push(parent);
     }
 
@@ -26,14 +26,15 @@ impl DependencyGraph {
         let mut pending: HashSet<char> = self.instructions.keys().cloned().collect();
         while pending.len() > 0 {
             let mut satisfied: Vec<char> = self.instructions.iter()
-                .filter(|(_c, deps)| deps.iter().all(|dep| !pending.contains(dep)))
+                .filter(|(c, deps)| {
+                    pending.contains(c) &&
+                    deps.iter().all(|dep| !pending.contains(dep))
+                })
                 .map(|(c, deps)| c.clone())
                 .collect();
             satisfied.sort();
-            results.extend(satisfied.iter());
-            for instruction in satisfied.iter() {
-                pending.remove(instruction);
-            }
+            results.push(satisfied[0]);
+            pending.remove(&satisfied[0]);
         }
         results
     }
@@ -45,7 +46,7 @@ pub fn order_steps(text: &str) -> String {
     let mut deps = DependencyGraph::new();
     for line in text.lines() {
         let parent = line.chars().take(6).last().unwrap();
-        let child = line.chars().take(38).last().unwrap();
+        let child = line.chars().take(37).last().unwrap();
         deps.add_dependency(parent, child);
     }
     deps.linearize().into_iter().collect()
