@@ -12,6 +12,6 @@ fn main() {
 
     let mut contents = String::new();
     input.read_to_string(&mut contents).expect("Couldn't read file.");
-    println!("{}", day8::total_metadata(&day8::Node::from_text(&contents)));
+    println!("{}", day8::Node::from_text(&contents).value());
     
 }

@@ -43,6 +43,20 @@ impl Node {
             .map(|child| child.metadata_total()).sum();
         my_metadata + children_total
     }
+
+    pub fn value(&self) -> usize {
+        if self.children.is_empty() { return self.metadata.iter().sum(); }
+
+        let mut total: usize = 0;
+        for pointer in self.metadata.iter() {
+            if *pointer < 1 || *pointer > self.children.len() { continue; }
+
+            total += self.children.get(*pointer - 1)
+                .expect("Couldn't get child value")
+                .value();
+        }
+        total
+    }
 }
 
 pub fn total_metadata(root: &Node) -> usize {
@@ -57,5 +71,11 @@ mod tests {
     fn test_part_one() {
         let license = "2 3 0 3 10 11 12 1 1 0 1 99 2 1 1 2";
         assert_eq!(138, total_metadata(&Node::from_text(license)));
+    }
+
+    #[test]
+    fn test_part_two() {
+        let license = "2 3 0 3 10 11 12 1 1 0 1 99 2 1 1 2";
+        assert_eq!(66, Node::from_text(license).value());
     }
 }
