@@ -4,6 +4,7 @@
 
 use regex::Regex;
 
+/// A star in the sky that has position and velocity in 2 dimensions
 struct Star {
     x: isize,
     y: isize,
@@ -18,6 +19,7 @@ impl Star {
     }
 }
 
+/// A night sky that has kinematic stars in it
 pub struct Sky {
     stars: Vec<Star>,
 }
@@ -27,6 +29,7 @@ impl Sky {
         Self { stars: vec![] }
     }
 
+    /// Loads stars in the sky from text
     pub fn from_text(text: &str) -> Self {
         let mut sky = Self::new();
         let number_regex = Regex::new(r"-?\d+").unwrap();
@@ -41,12 +44,16 @@ impl Sky {
         sky
     }
 
+    /// Updates the position of each star based on its velocity
     pub fn update(&mut self) {
         for star in self.stars.iter_mut() {
             star.update();
         }
     }
 
+    /// Loop over time, updating the Sky and potentially displaying the
+    /// current state.  Only displays if the stars are clustered enough
+    /// together.  Stars are '#' and empty sky is '.'
     pub fn display(&mut self, frames: isize) {
         for t in 0..frames {
             self.update();
@@ -55,6 +62,8 @@ impl Sky {
             let xmax = self.stars.iter().map(|star| star.x).max().unwrap();
             let ymin = self.stars.iter().map(|star| star.y).min().unwrap();
             let ymax = self.stars.iter().map(|star| star.y).max().unwrap();
+
+            // Only display if the bounds are reasonable
             if (ymax - ymin) > 30 {
                 continue;
             }
