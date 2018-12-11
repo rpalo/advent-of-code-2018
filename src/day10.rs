@@ -47,24 +47,29 @@ impl Sky {
         }
     }
 
-    pub fn display(&self) {
-        let xmin = self.stars.iter().map(|star| star.x).min().unwrap();
-        let xmax = self.stars.iter().map(|star| star.x).max().unwrap();
-        let ymin = self.stars.iter().map(|star| star.y).min().unwrap();
-        let ymax = self.stars.iter().map(|star| star.y).max().unwrap();
-        if (ymax - ymin) > 30 {
-            return;
-        }
-        println!("");
-        for y in (ymin - 5)..=(ymax + 5) {
-            for x in (xmin - 5)..=(xmax + 5) {
-                if self.stars.iter().any(|star| star.x == x && star.y == y) {
-                    print!("#");
-                } else {
-                    print!(".");
-                }
+    pub fn display(&mut self, frames: isize) {
+        for t in 0..frames {
+            self.update();
+
+            let xmin = self.stars.iter().map(|star| star.x).min().unwrap();
+            let xmax = self.stars.iter().map(|star| star.x).max().unwrap();
+            let ymin = self.stars.iter().map(|star| star.y).min().unwrap();
+            let ymax = self.stars.iter().map(|star| star.y).max().unwrap();
+            if (ymax - ymin) > 30 {
+                continue;
             }
             println!("");
+            println!("t = {}", t);
+            for y in (ymin - 5)..=(ymax + 5) {
+                for x in (xmin - 5)..=(xmax + 5) {
+                    if self.stars.iter().any(|star| star.x == x && star.y == y) {
+                        print!("#");
+                    } else {
+                        print!(".");
+                    }
+                }
+                println!("");
+            }
         }
     }
 }

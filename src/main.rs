@@ -14,9 +14,6 @@ fn main() {
     input.read_to_string(&mut contents).expect("Couldn't read file.");
 
     let mut sky = day10::Sky::from_text(&contents);
-    for i in 0..200000 {
-        sky.update();
-        sky.display();
-    }
+    sky.display(20000);
     
 }
