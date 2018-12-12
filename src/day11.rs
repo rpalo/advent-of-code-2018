@@ -2,6 +2,7 @@
 /// 
 /// Figure out the power contained in power cells
 
+/// A Grid of powercells with variable power levels
 pub struct Grid {
     cells: [[i32; 300]; 300],
     serial: isize,
@@ -14,6 +15,8 @@ impl Grid {
         grid
     }
 
+    /// Each cell has a location/serial number-based checksum that
+    /// determines its power level.  Calculates all cells.
     fn generate_values(&mut self) {
         for (i, row) in self.cells.iter_mut().enumerate() {
             for (j, value) in row.iter_mut().enumerate() {
@@ -22,6 +25,9 @@ impl Grid {
         }
     }
 
+    /// The checksum power level calculation on a cell basis.
+    /// 
+    /// Depends on the grid's serial number and on the location of the cell
     fn power_level(serial: isize, x: i32, y: i32) -> i32 {
         let mut result = (x as isize + 10) * (y as isize) + serial;
         result *= x as isize + 10;
@@ -29,6 +35,8 @@ impl Grid {
         (result - 5) as i32
     }
 
+    /// Finds the cell that is at the top left of the 3x3 with the highest
+    /// total in the grid.
     pub fn best_cell(&self) -> (usize, usize) {
         let mut max_value = 0;
         let mut max_location = (0, 0);
@@ -47,6 +55,9 @@ impl Grid {
         max_location
     }
 
+    /// Finds the cell that is at the top left of the N x N grid with
+    /// the highest total power level, where N can be any size between
+    /// 1 and 300.
     pub fn best_cell_sized(&self) -> (usize, usize, usize) {
         let mut max_value = 0;
         let mut max_location = (0, 0, 0);
