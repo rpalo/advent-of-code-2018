@@ -14,7 +14,7 @@ fn main() {
     // input.read_to_string(&mut contents).expect("Couldn't read file.");
 
     let mut grid = day11::Grid::new(8772);
-    println!("{:?}", grid.best_cell());
+    println!("{:?}", grid.best_cell_sized());
     //sky.display(20000);
     
 }

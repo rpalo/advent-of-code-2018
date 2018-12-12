@@ -3,7 +3,7 @@
 /// Figure out the power contained in power cells
 
 pub struct Grid {
-    cells: [[i16; 300]; 300],
+    cells: [[i32; 300]; 300],
     serial: isize,
 }
 
@@ -17,16 +17,16 @@ impl Grid {
     fn generate_values(&mut self) {
         for (i, row) in self.cells.iter_mut().enumerate() {
             for (j, value) in row.iter_mut().enumerate() {
-                *value = Grid::power_level(self.serial, (i + 1) as i16, (j + 1) as i16);
+                *value = Grid::power_level(self.serial, (i + 1) as i32, (j + 1) as i32);
             }
         }
     }
 
-    fn power_level(serial: isize, x: i16, y: i16) -> i16 {
+    fn power_level(serial: isize, x: i32, y: i32) -> i32 {
         let mut result = (x as isize + 10) * (y as isize) + serial;
         result *= x as isize + 10;
         result = (result / 100) % 10;
-        (result - 5) as i16
+        (result - 5) as i32
     }
 
     pub fn best_cell(&self) -> (usize, usize) {
@@ -34,13 +34,34 @@ impl Grid {
         let mut max_location = (0, 0);
         for i in 0..298 {
             for j in 0..298 {
-                let value: i16 = self.cells.iter()
+                let value = self.cells.iter()
                     .skip(i).take(3)
                     .flat_map(|row| row.iter().skip(j).take(3) )
                     .sum();
                 if value > max_value {
                     max_value = value;
                     max_location = (i + 1, j + 1);
+                }
+            }
+        }
+        max_location
+    }
+
+    pub fn best_cell_sized(&self) -> (usize, usize, usize) {
+        let mut max_value = 0;
+        let mut max_location = (0, 0, 0);
+        for size in 1..=30 {
+            println!("Doing iteration: {}", size);
+            for i in 0..=(300 - size) {
+                for j in 0..=(300 - size) {
+                    let value = self.cells.iter()
+                        .skip(i).take(size)
+                        .flat_map(|row| row.iter().skip(j).take(size) )
+                        .sum();
+                    if value > max_value {
+                        max_value = value;
+                        max_location = (i + 1, j + 1, size);
+                    }
                 }
             }
         }
@@ -77,6 +98,18 @@ mod tests {
     #[test]
     fn test_power_level_71() {
         assert_eq!(4, Grid::power_level(71, 101, 153));
+    }
+
+    #[test]
+    fn test_part_two_1() {
+        let grid = Grid::new(18);
+        assert_eq!(grid.best_cell_sized(), (90, 269, 16));
+    }
+
+    #[test]
+    fn test_part_two_2() {
+        let grid = Grid::new(42);
+        assert_eq!(grid.best_cell_sized(), (232, 251, 12));
     }
 
 }
