@@ -14,7 +14,7 @@ fn main() {
     input.read_to_string(&mut contents).expect("Couldn't read file.");
 
     let mut plants = day12::Plants::new("##..#..##....#..#..#..##.#.###.######..#..###.#.#..##.###.#.##..###..#.#..#.##.##..###.#.#...#.##..", &contents);
-    plants.iterate(20);
+    plants.iterate(50000000000);
     println!("{}", plants.live_count());
     
 }

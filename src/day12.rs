@@ -28,6 +28,7 @@ impl Plants {
 
     pub fn iterate(&mut self, times: usize) {
         for t in 0..times {
+            if t % 1000000 == 0 { println!("{}", t); }
             if self.plants.iter().take(5).any(|c| *c == '#') {
                 for _i in 0..5 { self.plants.insert(0, '.'); }
                 self.zero += 5;
