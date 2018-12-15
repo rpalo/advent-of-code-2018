@@ -46,9 +46,31 @@ class Board:
         """Returns the scores on the board.  1-based counting"""
         return self.scores[start - 1:start - 1 + count]
 
+    def find_numbers(self, num: str) -> int:
+        """Find the start index of a given string of digits"""
+        digits = Board.digits(num)
+
+        if len(self.scores) < len(digits):
+            self.generate_n_scores(len(digits) - len(self.scores))
+
+        last_len = len(digits)
+        while True:
+            self.tick()
+            if len(self.scores) == last_len + 2:
+                if self.scores[-len(digits) - 1: -1] == digits:
+                    return len(self.scores) - len(digits) - 1
+            if self.scores[-len(digits):] == digits:
+                return len(self.scores) - len(digits)
+
+            last_len = len(self.scores)
+
 
 if __name__ == "__main__":
     # Part 1
     board = Board(3, 7)
     board.generate_n_scores(440231 + 10)
     print("".join(str(i) for i in board.get_scores(440231 + 1, 10)))
+
+    # Part 2
+    board = Board(3, 7)
+    print(board.find_numbers("440231"))

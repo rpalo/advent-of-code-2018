@@ -1,4 +1,4 @@
 rust/target
 **/*.rs.bk
-**/__pycache__
+**/__pycache__/
 **/.pytest_cache
