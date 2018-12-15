@@ -65,7 +65,7 @@ def parse_rules(text: str) -> Dict[str, str]:
 
 def age(plants: Plants, generations: int, rules: Dict[str, str]) -> Plants:
     """Ages a set of plants n generations"""
-    for _ in range(generations):
+    for i in range(generations):
         plants = next_generation(plants, rules)
     return plants
 
@@ -75,5 +75,12 @@ if __name__ == "__main__":
         rules = parse_rules(f.read())
     initial_plants = Plants(
         "##..#..##....#..#..#..##.#.###.######..#..###.#.#..##.###.#.##..###..#.#..#.##.##..###.#.#...#.##..")
+
+    # Part 1
     plants = age(initial_plants, 20, rules)
     print(plants.score())
+
+    # Part 2: Wherein it's #@%!# linear above about 300
+
+    plants = age(initial_plants, 300, rules)
+    print(plants.score() + (50000000000 - 300)*86)
