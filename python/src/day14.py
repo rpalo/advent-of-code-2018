@@ -35,7 +35,7 @@ class Board:
         self.select_new_recipes()
 
     def generate_n_scores(self, n: int) -> List[int]:
-        """Returns the next ten scores to be generated"""
+        """Adds *at least* n scores to the board (may be one extra)"""
         current_scores = len(self.scores)
         while len(self.scores) < current_scores + n:
             self.tick()
