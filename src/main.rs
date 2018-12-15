@@ -4,19 +4,17 @@ extern crate regex;
 use std::fs::File;
 use std::io::prelude::*;
 
-mod day12;
+mod day13;
 
 fn main() {
     
     // let mut input = File::open("data/day10.txt").expect("File not found.");
 
-    let mut input = File::open("data/day12.txt").expect("File not found.");
+    let mut input = File::open("data/day13.txt").expect("File not found.");
 
     let mut contents = String::new();
     input.read_to_string(&mut contents).expect("Couldn't read file.");
 
-    let mut plants = day12::Plants::new("##..#..##....#..#..#..##.#.###.######..#..###.#.#..##.###.#.##..###..#.#..#.##.##..###.#.#...#.##..", &contents);
-    plants.iterate(50000000000);
-    println!("{}", plants.live_count());
+    println!("{:?}", day13::find_crash(&contents));
     
 }
