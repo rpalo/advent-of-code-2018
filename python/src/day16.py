@@ -3,6 +3,8 @@
 Identify and classify time machine opcodes
 """
 
+from collections import defaultdict
+
 
 def addr(state, inreg1, inreg2, outreg):
     """Adds the value of Reg 1 to the value of Reg 2 and stores in outreg"""
@@ -147,6 +149,20 @@ def at_least_n_possible_opcodes(cases, n):
         if possible_ops >= n:
             result += 1
     return result
+
+
+def decipher_opcodes(cases):
+    """Given a set of operation input/outputs, identifies which opcodes
+    go with which operations.
+    """
+    potential_mapping = defaultdict(list)
+    available_op_ids = set()
+    for case in cases:
+        op_id, a, b, c = case["opcode"]
+        available_op_ids.add(op_id)
+        for op in OPERATIONS:
+            if op(case["before"], a, b, c) == case["after"]:
+                potential_mapping[op].append(op_id)
 
 
 if __name__ == "__main__":
