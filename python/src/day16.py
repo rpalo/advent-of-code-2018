@@ -155,18 +155,52 @@ def decipher_opcodes(cases):
     """Given a set of operation input/outputs, identifies which opcodes
     go with which operations.
     """
-    potential_mapping = defaultdict(list)
+    potential_mapping = defaultdict(set)
     available_op_ids = set()
     for case in cases:
         op_id, a, b, c = case["opcode"]
         available_op_ids.add(op_id)
         for op in OPERATIONS:
             if op(case["before"], a, b, c) == case["after"]:
-                potential_mapping[op].append(op_id)
+                potential_mapping[op].add(op_id)
+
+    result = {}
+    while potential_mapping:
+        for op, codes in potential_mapping.items():
+            if len(codes) == 1:
+                code = list(codes)[0]
+                result[code] = op
+                available_op_ids.remove(code)
+            potential_mapping[op] = codes & available_op_ids
+        potential_mapping = {op: codes for op,
+                             codes in potential_mapping.items() if len(codes) > 0}
+    return result
+
+
+def result_of_instructions(instructions, optable):
+    """Given a starting bank of registers with value 0, what are the contents
+    of the registers after all instructions are processed"""
+    registers = [0] * 4
+    for instruction in instructions:
+        opcode, a, b, c = instruction
+        registers = optable[opcode](registers, a, b, c)
+    return registers
 
 
 if __name__ == "__main__":
     with open("python/data/day16.txt", "r") as f:
         text = f.read()
+
+    # Part 1
     cases = process_instructions(text)
     print(at_least_n_possible_opcodes(cases, 3))
+
+    # Part 2
+    optable = decipher_opcodes(cases)
+    with open("python/data/day16_ops.txt", "r") as f:
+        instruction_text = f.read()
+    instructions = [
+        [int(value) for value in instruction.split()]
+        for instruction in instruction_text.splitlines()
+    ]
+    print(result_of_instructions(instructions, optable))
