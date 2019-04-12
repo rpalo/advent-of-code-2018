@@ -17,7 +17,9 @@ pub struct Position {
     value: char,
 }
 
-pub fn find_nearest_reachable(map: Vec<Vec<Position>>, start: Position) -> Option<Position> {
+type Grid = Vec<Vec<Position>>;
+
+pub fn find_nearest_reachable(map: Grid, start: Position) -> Option<Position> {
     let mut q: VecDeque<Position> = VecDeque::new();
     q.push_back(start);
     let mut seen: HashSet<Position> = HashSet::new();
@@ -49,9 +51,27 @@ pub fn find_nearest_reachable(map: Vec<Vec<Position>>, start: Position) -> Optio
     return None;
 }
 
-// pub fn distance(start: Position, end: Position) -> usize {
-//     (end.x - start.x).abs() + (end.y - start.y).abs()
-// }
+pub fn best_next_step(map: Grid, start: Position, target: Position) -> Position {
+    let mut results: Vec<(usize, usize)> = Vec::new();
+    let neighbors: Vec<Position> = vec![
+        map[start.y-1][start.x],
+        map[start.y][start.x-1],
+        map[start.y][start.x+1],
+        map[start.y+1][start.x],
+    ];
+
+    for (i, neighbor) in neighbors.iter().enumerate() {
+        if neighbor.value == '.' {
+            results.push((distance(*neighbor, target), i));
+        }
+    }
+    let index = results.iter().min().unwrap().1;
+    neighbors[index]
+}
+
+pub fn distance(start: Position, end: Position) -> usize {
+    ((end.x as isize - start.x as isize).abs() + (end.y as isize - start.y as isize).abs()) as usize
+}
 
 pub fn parse_map(text: &str) -> Vec<Vec<Position>> {
     let mut result: Vec<Vec<Position>> = Vec::new();
@@ -114,6 +134,24 @@ mod tests {
         assert_eq!(
             Some(Position{x: 3, y: 1, value: '.'}),
             find_nearest_reachable(map, start)
+        );
+    }
+
+        #[test]
+    fn test_choose_best_next_step() {
+        let text = "
+#######
+#.E...#
+#.....#
+#...G.#
+#######
+".trim();
+        let map = parse_map(&text);
+        let start = Position{x: 2, y: 1, value: 'E'};
+        let target = Position{x: 4, y: 2, value: '.'};
+        assert_eq!(
+            Position{x: 3, y: 1, value: '.'},
+            best_next_step(map, start, target)
         );
     }
 }
