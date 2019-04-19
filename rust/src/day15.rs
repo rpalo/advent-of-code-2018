@@ -3,7 +3,7 @@
 /// Simulate a battle between elves and goblins
 
 use std::collections::VecDeque;
-use std::collections::HashSet;
+use std::collections::HashMap;
 
 #[derive(Clone)]
 #[derive(Copy)]
@@ -29,10 +29,10 @@ pub fn ground(x: usize, y: usize) -> Position {
     Position {x: x, y: y, value: '.', health: 0}
 }
 
-fn find_nearest_reachable(map: &Grid, start: Position) -> Option<Position> {
-    let mut q: VecDeque<Position> = VecDeque::new();
-    q.push_back(start);
-    let mut seen: HashSet<Position> = HashSet::new();
+fn best_next_step(map: &Grid, start: Position) -> Option<Position> {
+    let mut q: VecDeque<Vec<Position>> = VecDeque::new();
+    q.push_back(vec![start]);
+    let mut seen: HashMap<Position, usize> = HashMap::new();
 
     let enemy: char = match start.value {
         'E' => 'G',
@@ -40,9 +40,8 @@ fn find_nearest_reachable(map: &Grid, start: Position) -> Option<Position> {
         _ => '?',
     };
     while !q.is_empty() {
-        // println!("{:?}", q);
-        let current = q.pop_front().unwrap();
-        seen.insert(current);
+        let current_chain = q.pop_front().unwrap();
+        let current = current_chain[current_chain.len() - 1];
         
         let neighbors: Vec<Position> = vec![
             map[current.y-1][current.x],
@@ -52,33 +51,21 @@ fn find_nearest_reachable(map: &Grid, start: Position) -> Option<Position> {
         ];
         for neighbor in neighbors {
             if neighbor.value == enemy {
-                return Some(current);
-            } else if neighbor.value == '.' && ! seen.contains(&neighbor) {
-                q.push_back(neighbor);
+                return Some(current_chain[1]);
+            }
+            if neighbor.value == '.' && (seen.get(&neighbor).is_none() || *seen.get(&neighbor).unwrap() > current_chain.len() + 1) {
+                let mut new_spot = current_chain.clone();
+                new_spot.push(neighbor);
+                seen.insert(neighbor, current_chain.len() + 1);
+                q.push_back(new_spot);
             }
         }
+        //println!("Searching move. Q Length {}", q.len());
     }
 
     return None;
 }
 
-fn best_next_step(map: &Grid, start: Position, target: Position) -> Position {
-    let mut results: Vec<(usize, usize)> = Vec::new();
-    let neighbors: Vec<Position> = vec![
-        map[start.y-1][start.x],
-        map[start.y][start.x-1],
-        map[start.y][start.x+1],
-        map[start.y+1][start.x],
-    ];
-
-    for (i, neighbor) in neighbors.iter().enumerate() {
-        if neighbor.value == '.' {
-            results.push((distance(*neighbor, target), i));
-        }
-    }
-    let index = results.iter().min().unwrap().1;
-    neighbors[index]
-}
 
 fn any_warriors(map: &Grid, team: char) -> bool {
     map.iter().flatten().any(|pos| pos.value == team)
@@ -112,7 +99,7 @@ fn select_attack_target(map: &Grid, attacker: Position) -> Position {
         _ => '?',
     };
     neighbors.into_iter().enumerate()
-        .filter(|(i, pos)| pos.value == enemy)
+        .filter(|(_i, pos)| pos.value == enemy)
         .min_by_key(|(i, pos)| (pos.health, *i))
         .unwrap().1
 }
@@ -139,13 +126,13 @@ fn simulate_round(map: Grid) -> Round {
         }
 
         if !can_attack(&next_round, character) {
-            let end_goal = find_nearest_reachable(&map, character);
+            let next_step = best_next_step(&next_round, character);
 
-            if end_goal.is_none() {
+            if next_step.is_none() {
                 continue;
             }
 
-            let next_step = best_next_step(&map, character, end_goal.unwrap());
+            let next_step = next_step.unwrap();
             next_round[character.y][character.x] = ground(character.x, character.y);
             character = Position{x: next_step.x, y: next_step.y, value: character.value, health: character.health};
             next_round[character.y][character.x] = character;
@@ -159,7 +146,6 @@ fn simulate_round(map: Grid) -> Round {
         let new_target = Position{x: target.x, y: target.y, value: target.value, health: target.health - 3};
         if new_target.health <= 0 {
             next_round[target.y][target.x] = ground(target.x, target.y);
-            println!("{} killed.", target.value);
         } else {
             next_round[target.y][target.x] = new_target;
         }
@@ -173,20 +159,18 @@ pub fn simulate_battle(text: &str) -> isize {
     let mut map = parse_map(text);
     let mut still_battling = true;
     let mut rounds = 0;
-
+    let mut last_elf_gob = (0, 0);
     while still_battling {
         match simulate_round(map) {
             Round::Complete(new_map) => {
                 map = new_map;
                 rounds += 1;
-                println!("{} rounds complete", rounds);
             },
             Round::Partial(final_map) => {
                 map = final_map;
                 still_battling = false;
             }
         }
-        print_map(&map);
     }
 
     let total_hitpoints: isize = map.iter().flatten().filter(|pos| pos.value == 'E' || pos.value == 'G')
@@ -256,23 +240,6 @@ mod tests {
     }
 
     #[test]
-    fn test_find_nearest_enemy() {
-        let text = "
-#######
-#E..G.#
-#...#.#
-#.G.#G#
-#######
-".trim();
-        let map = parse_map(&text);
-        let start = Position{x: 1, y: 1, value: 'E', health: 200};
-        assert_eq!(
-            Some(Position{x: 3, y: 1, value: '.', health: 200}),
-            find_nearest_reachable(&map, start)
-        );
-    }
-
-    #[test]
     fn test_choose_best_next_step() {
         let text = "
 #######
@@ -283,10 +250,9 @@ mod tests {
 ".trim();
         let map = parse_map(&text);
         let start = Position{x: 2, y: 1, value: 'E', health: 200};
-        let target = Position{x: 4, y: 2, value: '.', health: 200};
         assert_eq!(
             Position{x: 3, y: 1, value: '.', health: 200},
-            best_next_step(&map, start, target)
+            best_next_step(&map, start).unwrap()
         );
     }
 
@@ -322,4 +288,77 @@ mod tests {
 ".trim();
         assert_eq!(27730, simulate_battle(text));
     }
+
+    #[test]
+    fn test_full_battle2() {
+        let text = "
+#######
+#G..#E#
+#E#E.E#
+#G.##.#
+#...#E#
+#...E.#
+#######
+".trim();
+        assert_eq!(36334, simulate_battle(text));
+    }
+
+        #[test]
+    fn test_full_battle3() {
+        let text = "
+#######
+#E..EG#
+#.#G.E#
+#E.##E#
+#G..#.#
+#..E#.#
+#######
+".trim();
+        assert_eq!(39514, simulate_battle(text));
+    }
+
+        #[test]
+    fn test_full_battle4() {
+        let text = "
+#######
+#E.G#.#
+#.#G..#
+#G.#.G#
+#G..#.#
+#...E.#
+#######
+".trim();
+        assert_eq!(27755, simulate_battle(text));
+    }
+
+        #[test]
+    fn test_full_battle5() {
+        let text = "
+#######
+#.E...#
+#.#..G#
+#.###.#
+#E#G#G#
+#...#G#
+#######
+".trim();
+        assert_eq!(28944, simulate_battle(text));
+    }
+
+        #[test]
+    fn test_full_battle6() {
+        let text = "
+#########
+#G......#
+#.E.#...#
+#..##..G#
+#...##..#
+#...#...#
+#.G...G.#
+#.....G.#
+#########
+".trim();
+        assert_eq!(18740, simulate_battle(text));
+    }
+
 }
