@@ -15,12 +15,21 @@ pub struct Position {
     x: usize,
     y: usize,
     value: char,
-    health: usize,
+    health: isize,
 }
 
 type Grid = Vec<Vec<Position>>;
 
-pub fn find_nearest_reachable(map: Grid, start: Position) -> Option<Position> {
+enum Round {
+    Complete(Grid),
+    Partial(Grid),
+}
+
+pub fn ground(x: usize, y: usize) -> Position {
+    Position {x: x, y: y, value: '.', health: 0}
+}
+
+fn find_nearest_reachable(map: &Grid, start: Position) -> Option<Position> {
     let mut q: VecDeque<Position> = VecDeque::new();
     q.push_back(start);
     let mut seen: HashSet<Position> = HashSet::new();
@@ -31,6 +40,7 @@ pub fn find_nearest_reachable(map: Grid, start: Position) -> Option<Position> {
         _ => '?',
     };
     while !q.is_empty() {
+        // println!("{:?}", q);
         let current = q.pop_front().unwrap();
         seen.insert(current);
         
@@ -43,7 +53,7 @@ pub fn find_nearest_reachable(map: Grid, start: Position) -> Option<Position> {
         for neighbor in neighbors {
             if neighbor.value == enemy {
                 return Some(current);
-            } else if neighbor.value == '.' {
+            } else if neighbor.value == '.' && ! seen.contains(&neighbor) {
                 q.push_back(neighbor);
             }
         }
@@ -52,7 +62,7 @@ pub fn find_nearest_reachable(map: Grid, start: Position) -> Option<Position> {
     return None;
 }
 
-pub fn best_next_step(map: Grid, start: Position, target: Position) -> Position {
+fn best_next_step(map: &Grid, start: Position, target: Position) -> Position {
     let mut results: Vec<(usize, usize)> = Vec::new();
     let neighbors: Vec<Position> = vec![
         map[start.y-1][start.x],
@@ -70,17 +80,122 @@ pub fn best_next_step(map: Grid, start: Position, target: Position) -> Position 
     neighbors[index]
 }
 
-pub fn select_attack_target(map: Grid, attacker: Position) -> Position {
+fn any_warriors(map: &Grid, team: char) -> bool {
+    map.iter().flatten().any(|pos| pos.value == team)
+}
+
+fn can_attack(map: &Grid, attacker: Position) -> bool {
+    let enemy = match attacker.value {
+        'E' => 'G',
+        'G' => 'E',
+        _ => '?',
+    };
     let neighbors: Vec<Position> = vec![
         map[attacker.y-1][attacker.x],
         map[attacker.y][attacker.x-1],
         map[attacker.y][attacker.x+1],
         map[attacker.y+1][attacker.x],
     ];
-    neighbors.into_iter().enumerate().min_by_key(|(i, pos)| (pos.health, *i)).unwrap().1
+    neighbors.iter().any(|&neighbor| neighbor.value == enemy)
 }
 
-pub fn distance(start: Position, end: Position) -> usize {
+fn select_attack_target(map: &Grid, attacker: Position) -> Position {
+    let neighbors: Vec<Position> = vec![
+        map[attacker.y-1][attacker.x],
+        map[attacker.y][attacker.x-1],
+        map[attacker.y][attacker.x+1],
+        map[attacker.y+1][attacker.x],
+    ];
+    let enemy = match attacker.value {
+        'E' => 'G',
+        'G' => 'E',
+        _ => '?',
+    };
+    neighbors.into_iter().enumerate()
+        .filter(|(i, pos)| pos.value == enemy)
+        .min_by_key(|(i, pos)| (pos.health, *i))
+        .unwrap().1
+}
+
+fn simulate_round(map: Grid) -> Round {
+    let mut next_round = map.clone();
+    let characters = map.iter().flatten().filter(|pos| pos.value == 'E' || pos.value == 'G');
+    for ref_character in characters {
+        let mut character = *ref_character;
+
+        if next_round[character.y][character.x].value == '.' {
+            // Character has already died.  Skip turn, don't let him attack.
+            continue;
+        }
+
+        let enemy_team = match character.value {
+            'E' => 'G',
+            'G' => 'E',
+            _ => '?',
+        };
+        
+        if ! any_warriors(&next_round, enemy_team) {
+            return Round::Partial(next_round);
+        }
+
+        if !can_attack(&next_round, character) {
+            let end_goal = find_nearest_reachable(&map, character);
+
+            if end_goal.is_none() {
+                continue;
+            }
+
+            let next_step = best_next_step(&map, character, end_goal.unwrap());
+            next_round[character.y][character.x] = ground(character.x, character.y);
+            character = Position{x: next_step.x, y: next_step.y, value: character.value, health: character.health};
+            next_round[character.y][character.x] = character;
+        }
+
+        if !can_attack(&next_round, character) {
+            continue;
+        }
+
+        let target = select_attack_target(&next_round, character);
+        let new_target = Position{x: target.x, y: target.y, value: target.value, health: target.health - 3};
+        if new_target.health <= 0 {
+            next_round[target.y][target.x] = ground(target.x, target.y);
+            println!("{} killed.", target.value);
+        } else {
+            next_round[target.y][target.x] = new_target;
+        }
+    }
+    
+    return Round::Complete(next_round);
+    
+}
+
+pub fn simulate_battle(text: &str) -> isize {
+    let mut map = parse_map(text);
+    let mut still_battling = true;
+    let mut rounds = 0;
+
+    while still_battling {
+        match simulate_round(map) {
+            Round::Complete(new_map) => {
+                map = new_map;
+                rounds += 1;
+                println!("{} rounds complete", rounds);
+            },
+            Round::Partial(final_map) => {
+                map = final_map;
+                still_battling = false;
+            }
+        }
+        print_map(&map);
+    }
+
+    let total_hitpoints: isize = map.iter().flatten().filter(|pos| pos.value == 'E' || pos.value == 'G')
+        .map(|pos| pos.health).sum();
+
+    rounds * total_hitpoints
+}
+
+fn distance(start: Position, end: Position) -> usize {
     ((end.x as isize - start.x as isize).abs() + (end.y as isize - start.y as isize).abs()) as usize
 }
 
@@ -93,6 +208,15 @@ pub fn parse_map(text: &str) -> Vec<Vec<Position>> {
         }
     }
     result
+}
+
+pub fn print_map(map: &Grid) {
+    for row in map {
+        for pos in row {
+            print!("{}", pos.value);
+        }
+        println!("");
+    }
 }
 
 #[cfg(test)]
@@ -144,7 +268,7 @@ mod tests {
         let start = Position{x: 1, y: 1, value: 'E', health: 200};
         assert_eq!(
             Some(Position{x: 3, y: 1, value: '.', health: 200}),
-            find_nearest_reachable(map, start)
+            find_nearest_reachable(&map, start)
         );
     }
 
@@ -162,7 +286,7 @@ mod tests {
         let target = Position{x: 4, y: 2, value: '.', health: 200};
         assert_eq!(
             Position{x: 3, y: 1, value: '.', health: 200},
-            best_next_step(map, start, target)
+            best_next_step(&map, start, target)
         );
     }
 
@@ -181,7 +305,21 @@ mod tests {
         let expected = Position{x: 4, y: 3, value: 'G', health: 2};
         map[3][4] = expected;
         map[4][3] = Position{x: 3, y: 4, value: 'G', health: 2};
-        let target: Position = select_attack_target(map, Position{x: 3, y: 3, value: 'E', health: 200});
+        let target: Position = select_attack_target(&map, Position{x: 3, y: 3, value: 'E', health: 200});
         assert_eq!(target, expected);
+    }
+
+    #[test]
+    fn test_full_battle() {
+        let text = "
+#######
+#.G...#
+#...EG#
+#.#.#G#
+#..G#E#
+#.....#
+#######
+".trim();
+        assert_eq!(27730, simulate_battle(text));
     }
 }
