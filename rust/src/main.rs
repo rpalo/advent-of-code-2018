@@ -4,10 +4,8 @@
 use std::fs;
 use std::io::prelude::*;
 
-mod day15;
+mod day18;
 
 fn main() {
-    let text = fs::read_to_string("data/day15.txt").unwrap();
-
-    println!("{}", day15::simulate_battle(&text));
+    println!("YAY!");
 }
